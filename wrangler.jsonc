@@ -1,8 +1,11 @@
 // Cloudflare Workers config: serve this repo as a static site (no build step).
 {
-  "name": "shaderlab",
+  "name": "shaderlabs",
   "compatibility_date": "2025-09-01",
   "assets": {
     "directory": "."
+  },
+  "observability": {
+    "enabled": false
   }
 }
