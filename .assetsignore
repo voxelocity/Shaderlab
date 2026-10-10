@@ -1,0 +1,5 @@
+# Files in the repo that must not be published as part of the site.
+.git
+.github
+.assetsignore
+wrangler.jsonc
