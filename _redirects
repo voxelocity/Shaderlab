@@ -1,0 +1,3 @@
+# Cloudflare Pages: old single-file URLs now live at the root.
+/shaderlab.html  /  301
+/shaderlab       /  301

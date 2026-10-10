@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SHADER.LAB</title>
+<meta name="description" content="Stackable GPU image, video and text effects — dither, ascii, halftone, glitch, crt — running entirely in your browser.">
+<meta name="theme-color" content="#ff3c00">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%231a1a1a'/%3E%3Crect x='2' y='2' width='4' height='4' fill='%23ff3c00'/%3E%3Crect x='10' y='2' width='4' height='4' fill='%23f4f0e4'/%3E%3Crect x='6' y='6' width='4' height='4' fill='%23ff3c00'/%3E%3Crect x='2' y='10' width='4' height='4' fill='%23f4f0e4'/%3E%3Crect x='10' y='10' width='4' height='4' fill='%23ff3c00'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Space+Mono:wght@400;700&family=Major+Mono+Display&family=Anton&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/shaderlab.css">
+<script data-cfasync="false">try { document.documentElement.dataset.theme = localStorage.getItem('shaderlab-theme') || 'light'; } catch (e) {}</script>
+</head>
+<body>
+
+<!-- STARTUP BOOT SEQUENCE -->
+<div class="boot-overlay" id="bootOverlay"></div>
+<div class="boot-label" id="bootLabel">
+  <span class="big">SHADER.LAB</span>
+  <span class="small">boot sequence <span class="blink">_</span></span>
+</div>
+<div class="boot-pixel-mask" id="bootPixelMask"></div>
+
+<div class="frame">
+
+<header class="scan">
+  <div>
+    <div class="brand">SHADER<span>.</span>LAB</div>
+    <div class="tagline">[ stackable gpu effects · dither · ascii · halftone · glitch · crt ] — img · video · text</div>
+  </div>
+  <div class="header-right">
+    <div class="meta">
+      <div><span class="dot"></span><span id="metaState">ready</span></div>
+      <div>v0.4 / 2026</div>
+      <div>local · no upload</div>
+    </div>
+    <div class="theme-switch" id="themeSwitch" role="button" tabindex="0" title="toggle dark/light" aria-label="toggle dark or light theme">
+      <div class="theme-switch-thumb" id="themeThumb">☼</div>
+    </div>
+  </div>
+</header>
+
+<div class="workspace">
+
+  <!-- LEFT: source / canvas / text -->
+  <aside class="sidebar sidebar-left">
+    <section class="panel scan">
+      <h2>source <span class="num">/ 01</span></h2>
+      <div class="btn-row">
+        <button class="btn" id="imgBtn">load image</button>
+        <button class="btn alt" id="vidBtn">load video</button>
+        <button class="btn alt" id="camBtn">◉ webcam</button>
+        <button class="btn alt" id="demoBtn">◆ demo</button>
+        <button class="btn alt full" id="textOnlyBtn">Aa text only — no image</button>
+      </div>
+      <div class="btn-row" id="videoCtl" style="margin-top:6px" hidden>
+        <button class="btn alt small" id="playBtn">❚❚ pause</button>
+        <button class="btn alt small" id="restartBtn">⏮ restart</button>
+      </div>
+      <div class="hint" id="sourceInfo">drop an image, video or font anywhere</div>
+      <input type="file" class="file-input" id="imgInput" accept="image/*">
+      <input type="file" class="file-input" id="vidInput" accept="video/*">
+    </section>
+
+    <section class="panel scan">
+      <h2>canvas <span class="num">/ 02</span></h2>
+      <div id="canvasBody"></div>
+    </section>
+
+    <section class="panel scan">
+      <h2>text <span class="num" id="textNum">/ 03</span></h2>
+      <div class="stack" id="textList"></div>
+      <button class="btn" id="addTextBtn" style="width:100%">+ add text</button>
+      <div id="textEditor" style="margin-top:14px"></div>
+    </section>
+  </aside>
+
+  <!-- CENTRE: stage -->
+  <section class="center">
+    <div class="stage" id="stage">
+      <div class="drop-hint" id="dropHint">
+<div class="ascii-art">   ╔══════════════╗
+   ║  ░▒▓█▓▒░    ║
+   ║     ◉ ◉     ║
+   ║   drop here  ║
+   ║  ░▒▓█▓▒░    ║
+   ╚══════════════╝</div>
+        <div class="big">drop media</div>
+        <div class="small">image · video · .ttf font · or use the controls</div>
+      </div>
+      <div class="canvas-box" id="canvasBox" hidden>
+        <canvas id="view"></canvas>
+        <pre class="ascii-pre" id="asciiPre" hidden></pre>
+        <div class="overlay" id="overlay"></div>
+      </div>
+      <div class="loading-overlay" id="loading">
+        <div class="loading-box">
+          <div class="ascii-spinner" id="loadingSpinner">▓▒░ ░▒▓</div>
+          <div class="label" id="loadingLabel">processing</div>
+          <div class="loading-bar"></div>
+          <div class="sub" id="loadingSub">working</div>
+        </div>
+      </div>
+      <div class="drop-flash">drop to load</div>
+    </div>
+    <div class="status scan">
+      <div class="left" id="statusLeft">◇ idle — awaiting input</div>
+      <div class="right">
+        <span class="renderer-badge" id="rendererBadge">gpu</span>
+        <span id="statusRes">—</span>
+        <span id="statusFx">0 fx</span>
+        <span id="statusFps">—</span>
+      </div>
+    </div>
+    <div class="export-row">
+      <button class="btn accent" id="exportBtn" title="export (ctrl+e)">↓ export…</button>
+      <button class="btn" id="copyBtn" title="copy image (or ascii text) to clipboard">⎘ copy</button>
+      <button class="btn alt" id="recBtn" title="record the preview as video">● rec</button>
+      <button class="btn alt" id="undoBtn" title="undo (ctrl+z) · redo (ctrl+shift+z)">↶ undo</button>
+    </div>
+  </section>
+
+  <!-- RIGHT: effects / params / palette / adjust -->
+  <aside class="sidebar sidebar-right">
+    <section class="panel scan">
+      <h2>effects stack <span class="num">/ 04</span></h2>
+      <div class="stack" id="effectStack"></div>
+      <button class="btn accent" id="addFxBtn" style="width:100%">+ add effect</button>
+      <div class="btn-row" style="margin-top:6px">
+        <button class="btn alt small" id="presetsBtn">presets ▾</button>
+        <button class="btn alt small" id="clearFxBtn">clear all</button>
+      </div>
+    </section>
+
+    <section class="panel scan">
+      <h2>params <span class="num" id="paramsNum">/ —</span></h2>
+      <div id="paramsBody"><div class="stack-empty">select an effect to edit its parameters</div></div>
+    </section>
+
+    <section class="panel scan">
+      <h2>palette <span class="num">/ 05</span></h2>
+      <div class="control-group">
+        <label>palette size</label>
+        <div class="segmented" id="paletteSize"></div>
+      </div>
+      <div class="control-group">
+        <label>swatches <span style="float:right;color:var(--ink-mute)">ink → paper</span></label>
+        <div class="palette-swatches" id="swatches"></div>
+      </div>
+      <div class="btn-row control-group">
+        <button class="btn alt small" id="palFromImg" title="pick a palette from the current image">◎ from image</button>
+        <button class="btn alt small" id="palReverse" title="reverse the order (swaps ink and paper)">⇄ reverse</button>
+      </div>
+      <div class="control-group">
+        <label>presets</label>
+        <div class="palette-presets" id="palettePresets"></div>
+      </div>
+    </section>
+
+    <section class="panel scan">
+      <h2>adjust <span class="num">/ 06</span></h2>
+      <div id="adjustBody"></div>
+    </section>
+  </aside>
+
+</div>
+
+<footer>
+  shader.lab <span class="sep">//</span> runs entirely in your browser <span class="sep">//</span> zero uploads
+  <span class="sep">//</span> <kbd>ctrl+z</kbd> undo · <kbd>ctrl+e</kbd> export · drag text to move
+</footer>
+
+</div>
+
+<video id="video" muted loop playsinline crossorigin="anonymous"></video>
+<script type="module" data-cfasync="false" src="./src/main.js"></script>
+</body>
+</html>
